@@ -1,6 +1,7 @@
 import uuid
 from django.db import models
 from django.core.exceptions import ValidationError
+from django.contrib.auth.models import User
 
 class Trip(models.Model):
     """
@@ -8,6 +9,14 @@ class Trip(models.Model):
     cumulative HOS hours used, and overall route stats.
     """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="trips",
+        verbose_name="User"
+    )
     
     # Current Location
     current_location_name = models.CharField(

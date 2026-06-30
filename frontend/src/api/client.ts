@@ -29,6 +29,14 @@ interface CustomAxiosRequestConfig extends InternalAxiosRequestConfig {
 
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig): InternalAxiosRequestConfig => {
+    try {
+      const token = localStorage.getItem('spotter_auth_token');
+      if (token) {
+        config.headers.Authorization = `Token ${token}`;
+      }
+    } catch (e) {
+      // Storage access safety recovery
+    }
     return config;
   },
   (error: AxiosError) => {

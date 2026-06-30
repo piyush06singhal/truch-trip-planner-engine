@@ -23,8 +23,11 @@ class TripViewSet(APIView):
     saving results to DB.
     """
     def get(self, request):
-        # Retrieve planned trips history list ordered by creation time
-        trips = Trip.objects.all().order_by('-created_at')
+        # Retrieve planned trips history list ordered by creation time for current user
+        if request.user.is_authenticated:
+            trips = Trip.objects.filter(user=request.user).order_by('-created_at')
+        else:
+            trips = Trip.objects.filter(user=None).order_by('-created_at')
         serializer = TripOutputSerializer(trips, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -70,6 +73,7 @@ class TripViewSet(APIView):
         # Persist calculations within a single atomic transaction boundary
         with transaction.atomic():
             trip = Trip.objects.create(
+                user=request.user if request.user.is_authenticated else None,
                 current_location_name=summary["origin"],
                 current_location_lat=summary["origin_lat"],
                 current_location_lng=summary["origin_lng"],
@@ -179,7 +183,10 @@ class TripDetailViewSet(APIView):
     """
     def delete(self, request, pk):
         try:
-            trip = Trip.objects.get(pk=pk)
+            if request.user.is_authenticated:
+                trip = Trip.objects.get(pk=pk, user=request.user)
+            else:
+                trip = Trip.objects.get(pk=pk, user=None)
             trip.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
         except Trip.DoesNotExist:
@@ -189,10 +196,14 @@ class TripDetailViewSet(APIView):
         # Duplication logic cloning nested stops, log days and events atomically
         try:
             with transaction.atomic():
-                original = Trip.objects.get(pk=pk)
+                if request.user.is_authenticated:
+                    original = Trip.objects.get(pk=pk, user=request.user)
+                else:
+                    original = Trip.objects.get(pk=pk, user=None)
                 
                 # Clone Trip
                 cloned_trip = Trip.objects.create(
+                    user=request.user if request.user.is_authenticated else None,
                     current_location_name=original.current_location_name,
                     current_location_lat=original.current_location_lat,
                     current_location_lng=original.current_location_lng,

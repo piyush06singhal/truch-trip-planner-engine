@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { TripResponse } from '../types/trip';
+import { User, getUserProfile, logoutUser } from '../api/auth';
 
 export type TabType = 'map' | 'timeline' | 'eld';
 export type MapTheme = 'light' | 'dark';
@@ -42,6 +43,13 @@ interface UIContextType {
   setCarrierProfile: (profile: CarrierProfile) => void;
   activeRuleset: RulesetType;
   setActiveRuleset: (ruleset: RulesetType) => void;
+
+  // Authentication addition
+  currentUser: User | null;
+  setCurrentUser: (user: User | null) => void;
+  authLoading: boolean;
+  login: (token: string, user: User) => void;
+  logout: () => Promise<void>;
 }
 
 const UIContext = createContext<UIContextType | undefined>(undefined);
@@ -51,6 +59,10 @@ export const UIProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [activeEldDay, setActiveEldDay] = useState<number>(0);
   const [selectedStopIdx, setSelectedStopIdx] = useState<number | null>(null);
   
+  // Authentication State
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
   // Carrier profile & Active ruleset state loaded from localStorage
   const [carrierProfile, setCarrierProfileState] = useState<CarrierProfile>(() => {
     try {
@@ -137,6 +149,43 @@ export const UIProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
       // Storage save recovery
     }
   };
+
+  // Auth profile loader on startup
+  useEffect(() => {
+    const loadProfile = async () => {
+      const token = localStorage.getItem('spotter_auth_token');
+      if (token) {
+        try {
+          const profile = await getUserProfile();
+          setCurrentUser(profile);
+          addNotification('Welcome Back!', `Logged in successfully as driver ${profile.username}.`, 'success');
+        } catch (err) {
+          localStorage.removeItem('spotter_auth_token');
+          setCurrentUser(null);
+        }
+      }
+      setAuthLoading(false);
+    };
+    loadProfile();
+  }, []);
+
+  const login = (token: string, user: User) => {
+    localStorage.setItem('spotter_auth_token', token);
+    setCurrentUser(user);
+    addNotification('Login Successful', `Active profile changed to user account ${user.username}.`, 'success');
+  };
+
+  const logout = async () => {
+    try {
+      await logoutUser();
+    } catch (err) {
+      // API call failed, proceed with local cleanup
+    } finally {
+      localStorage.removeItem('spotter_auth_token');
+      setCurrentUser(null);
+      addNotification('Logged Out', 'User session terminated. Active trips are anonymous.', 'info');
+    }
+  };
   
   const [plannedTrip, setPlannedTripState] = useState<TripResponse | null>(() => {
     try {
@@ -197,6 +246,10 @@ export const UIProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
       markAllAsRead, clearNotifications,
       carrierProfile, setCarrierProfile,
       activeRuleset, setActiveRuleset,
+
+      // Authentication values
+      currentUser, setCurrentUser,
+      authLoading, login, logout,
     }}>
       {children}
     </UIContext.Provider>

@@ -26,6 +26,7 @@ INSTALLED_APPS = [
     # Third Party Apps
     'corsheaders',
     'rest_framework',
+    'rest_framework.authtoken',
     
     # Local Apps
     'trip_planner.apps.TripPlannerConfig',
@@ -218,3 +219,10 @@ LOGGING = {
         },
     },
 }
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+    ],
+}
+

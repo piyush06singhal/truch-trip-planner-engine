@@ -13,9 +13,14 @@ import {
   AlertTriangle,
   Info as InfoIcon,
   CheckCircle2,
-  X
+  X,
+  LogOut,
+  LogIn,
+  Building,
+  Award
 } from 'lucide-react';
 import { useUI } from '../../context/UIContext';
+import { AuthModal } from './AuthModal';
 
 interface NavbarProps {
   onMenuToggle: () => void;
@@ -24,24 +29,41 @@ interface NavbarProps {
 export const Navbar: React.FC<NavbarProps> = ({ onMenuToggle }) => {
   const { theme, setTheme } = useTheme();
   const location = useLocation();
-  const { notifications, markAllAsRead, clearNotifications } = useUI();
-  const [notifOpen, setNotifOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
   
-  // Close dropdown on click outside
+  // Custom states from UIContext
+  const { 
+    notifications, 
+    markAllAsRead, 
+    clearNotifications,
+    currentUser,
+    logout,
+    carrierProfile
+  } = useUI();
+
+  // Dropdown & Modal states
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+
+  const notifRef = useRef<HTMLDivElement>(null);
+  const profileRef = useRef<HTMLDivElement>(null);
+  
+  // Close dropdowns on click outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
         setNotifOpen(false);
       }
+      if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
+        setProfileOpen(false);
+      }
     };
-    if (notifOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
+    
+    document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [notifOpen]);
+  }, []);
 
   // Create breadcrumb label from route path
   const getBreadcrumb = () => {
@@ -91,7 +113,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onMenuToggle }) => {
         {/* Right Side: Tools, Theme & User Settings */}
         <div className="flex items-center gap-2">
           {/* Notifications Trigger & Dropdown Wrapper */}
-          <div className="relative" ref={dropdownRef}>
+          <div className="relative" ref={notifRef}>
             <button
               onClick={() => setNotifOpen(!notifOpen)}
               className="h-9 w-9 inline-flex items-center justify-center rounded-md border border-border hover:bg-secondary text-muted-foreground relative transition-colors focus:outline-none cursor-pointer"
@@ -99,11 +121,9 @@ export const Navbar: React.FC<NavbarProps> = ({ onMenuToggle }) => {
             >
               <Bell className="h-[1.1rem] w-[1.1rem]" />
               {unreadCount > 0 && (
-                <>
-                  <span className="absolute top-1 right-1 h-4 w-4 rounded-full bg-primary text-[9px] font-bold text-white flex items-center justify-center animate-pulse">
-                    {unreadCount}
-                  </span>
-                </>
+                <span className="absolute top-1 right-1 h-4 w-4 rounded-full bg-primary text-[9px] font-bold text-white flex items-center justify-center animate-pulse">
+                  {unreadCount}
+                </span>
               )}
             </button>
 
@@ -200,12 +220,88 @@ export const Navbar: React.FC<NavbarProps> = ({ onMenuToggle }) => {
           {/* Divider */}
           <div className="h-6 w-[1px] bg-border mx-1" />
 
-          {/* Profile Circle Placeholder */}
-          <div className="h-9 w-9 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-bold text-xs select-none">
-            <User className="h-4 w-4" />
+          {/* Profile Circle Avatar Trigger & Dropdown */}
+          <div className="relative" ref={profileRef}>
+            <button
+              onClick={() => setProfileOpen(!profileOpen)}
+              className="h-9 w-9 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-bold text-xs select-none cursor-pointer hover:bg-primary/20 transition-all focus:outline-none"
+              aria-label="Toggle user account profile settings menu"
+            >
+              {currentUser ? (
+                <span className="uppercase text-sm font-semibold">{currentUser.username[0]}</span>
+              ) : (
+                <User className="h-4 w-4" />
+              )}
+            </button>
+
+            {/* Profile Dropdown panel */}
+            {profileOpen && (
+              <div className="absolute right-0 mt-2 w-72 bg-card border border-border shadow-2xl rounded-xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                {currentUser ? (
+                  <div className="p-4 space-y-4">
+                    {/* User info details */}
+                    <div className="space-y-1 pb-3 border-b border-border">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Active CDL Profile</p>
+                      <h4 className="text-sm font-bold text-foreground truncate">{currentUser.username}</h4>
+                      <p className="text-[11px] text-muted-foreground truncate">{currentUser.email || 'No email attached'}</p>
+                    </div>
+
+                    {/* Carrier Info display */}
+                    <div className="space-y-2">
+                      <div className="flex gap-2.5 items-start text-xs">
+                        <Building className="h-4 w-4 text-zinc-500 shrink-0 mt-0.5" />
+                        <div>
+                          <p className="font-semibold text-zinc-300">{carrierProfile.name}</p>
+                          <p className="text-[10px] text-muted-foreground">DOT: {carrierProfile.dotNumber}</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2.5 items-start text-xs pt-1">
+                        <Award className="h-4 w-4 text-zinc-500 shrink-0 mt-0.5" />
+                        <span className="font-medium text-zinc-400">Authenticated Driver</span>
+                      </div>
+                    </div>
+
+                    {/* Action logout */}
+                    <div className="pt-2 border-t border-border">
+                      <button
+                        onClick={async () => {
+                          setProfileOpen(false);
+                          await logout();
+                        }}
+                        className="w-full text-left inline-flex items-center gap-2 text-xs font-semibold text-red-400 hover:text-red-300 py-1 cursor-pointer transition-colors"
+                      >
+                        <LogOut className="h-4 w-4" /> Sign Out Session
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-5 text-center space-y-3">
+                    <User className="h-8 w-8 text-muted-foreground/30 mx-auto" />
+                    <div className="space-y-1 select-none">
+                      <p className="text-xs font-bold text-foreground">Driver Profile Offline</p>
+                      <p className="text-[10px] text-muted-foreground max-w-[200px] mx-auto leading-normal">
+                        Sign in to sync your compliance trip logs and digital HOS sheets under your driver account.
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setProfileOpen(false);
+                        setAuthModalOpen(true);
+                      }}
+                      className="w-full inline-flex items-center justify-center gap-1.5 bg-primary text-white text-xs font-semibold px-3 py-2 rounded-lg cursor-pointer hover:bg-primary/90 transition-colors"
+                    >
+                      <LogIn className="h-3.5 w-3.5" /> Sign In / Register
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Auth Modal Overlay Popup */}
+      <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} />
     </header>
   );
 };
