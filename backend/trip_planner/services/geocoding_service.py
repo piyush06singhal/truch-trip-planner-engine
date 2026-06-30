@@ -78,30 +78,33 @@ class GeocodingService:
                 display_name = best_match["display_name"]
             except Exception as NominatimError:
                 logger.warning(f"Nominatim lookup failed: {NominatimError}. Triggering Photon API HTTP fallback...")
-                
-                # Photon OpenStreetMap Geocoding Web API fallback (bypasses cloud IP blocking/limits)
-                photon_url = "https://photon.komoot.io/api/"
-                photon_params = {"q": query, "limit": 1}
-                photon_response = requests.get(photon_url, headers=self.headers, params=photon_params, timeout=5.0)
-                photon_response.raise_for_status()
-                photon_data = photon_response.json()
-                
-                features = photon_data.get("features", [])
-                if not features:
-                    raise RoutingError(f"Photon fallback found no coordinates for: '{query}'")
-                
-                best_feat = features[0]
-                coords = best_feat["geometry"]["coordinates"]
-                lon = float(coords[0])
-                lat = float(coords[1])
-                
-                props = best_feat.get("properties", {})
-                display_parts = []
-                for key in ["name", "city", "state", "country"]:
-                    val = props.get(key)
-                    if val:
-                        display_parts.append(str(val))
-                display_name = ", ".join(display_parts) if display_parts else query
+                try:
+                    # Photon OpenStreetMap Geocoding Web API fallback (bypasses cloud IP blocking/limits)
+                    photon_url = "https://photon.komoot.io/api"
+                    photon_params = {"q": query, "limit": 1}
+                    photon_response = requests.get(photon_url, headers=self.headers, params=photon_params, timeout=5.0)
+                    photon_response.raise_for_status()
+                    photon_data = photon_response.json()
+                    
+                    features = photon_data.get("features", [])
+                    if not features:
+                        raise RoutingError(f"Photon fallback found no coordinates for: '{query}'")
+                    
+                    best_feat = features[0]
+                    coords = best_feat["geometry"]["coordinates"]
+                    lon = float(coords[0])
+                    lat = float(coords[1])
+                    
+                    props = best_feat.get("properties", {})
+                    display_parts = []
+                    for key in ["name", "city", "state", "country"]:
+                        val = props.get(key)
+                        if val:
+                            display_parts.append(str(val))
+                    display_name = ", ".join(display_parts) if display_parts else query
+                except Exception as PhotonError:
+                    logger.error(f"Photon geocoding fallback failed: {PhotonError}")
+                    raise RoutingError(f"Geocoding lookup failed. Nominatim error: {NominatimError}; Photon error: {PhotonError}")
             
             result = (lat, lon, display_name)
             
