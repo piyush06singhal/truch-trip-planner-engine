@@ -54,8 +54,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
         addNotification('Account Registered', `Welcome aboard, driver ${res.user.username}!`, 'success');
         onClose();
       }
-    } catch (err: any) {
-      const msg = err.message || 'Authentication transaction failed.';
+    } catch (err) {
+      const msg = err && typeof err === 'object' && 'message' in err
+        ? (err as { message: string }).message
+        : 'Authentication transaction failed.';
       setErrorMsg(msg);
     } finally {
       setLoading(false);
