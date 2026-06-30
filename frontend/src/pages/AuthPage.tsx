@@ -66,8 +66,10 @@ export const AuthPage: React.FC = () => {
         login(res.token, res.user);
         addNotification('Account Registered', `Welcome aboard, driver ${res.user.username}!`, 'success');
       }
-    } catch (err: any) {
-      const msg = err.message || 'Authentication failed. Please check details.';
+    } catch (err) {
+      const msg = err && typeof err === 'object' && 'message' in err
+        ? (err as { message: string }).message
+        : 'Authentication failed. Please check details.';
       setErrorMsg(msg);
     } finally {
       setLoading(false);
