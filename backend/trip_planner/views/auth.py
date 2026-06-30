@@ -130,11 +130,14 @@ class UserProfileView(APIView):
 class RequestPasswordResetView(APIView):
     """
     Endpoint to request password reset instructions.
-    Generates a verification token and dispatches an SMTP email.
+    Generates a verification token and dispatches an SMTP email (or HTTP fallback on Render).
     """
     permission_classes = [AllowAny]
 
     def post(self, request):
+        import os
+        import requests
+        
         email = request.data.get('email')
         if not email:
             return Response(
@@ -149,10 +152,51 @@ class RequestPasswordResetView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        # Fail fast if SMTP credentials are missing in settings configuration
+        # 1. Resend HTTP API Fallback: Bypasses Render Free Tier SMTP block (port 587 is blocked)
+        resend_api_key = os.environ.get('RESEND_API_KEY')
+        if resend_api_key:
+            try:
+                for user in users:
+                    token = default_token_generator.make_token(user)
+                    uid = urlsafe_base64_encode(force_bytes(user.pk))
+                    reset_link = f"https://truch-trip-planner-engine.vercel.app/reset-password/{uid}/{token}/"
+                    
+                    headers = {
+                        "Authorization": f"Bearer {resend_api_key}",
+                        "Content-Type": "application/json"
+                    }
+                    payload = {
+                        "from": "onboarding@resend.dev",
+                        "to": user.email,
+                        "subject": "SpotterAI CDL Driver Password Reset Request",
+                        "html": (
+                            f"<p>Hello {user.username},</p>"
+                            f"<p>You requested a password reset for your SpotterAI CDL profile.</p>"
+                            f"<p>Please click the link below to verify and select a new secure password:</p>"
+                            f"<p><a href='{reset_link}'>{reset_link}</a></p>"
+                            f"<p>If you did not initiate this transaction, please ignore this email.</p>"
+                            f"<p>Best regards,<br/>SpotterAI Compliance Team</p>"
+                        )
+                    }
+                    response = requests.post("https://api.resend.com/emails", json=payload, headers=headers, timeout=10)
+                    if response.status_code not in (200, 201):
+                        raise Exception(f"Resend HTTP error {response.status_code}: {response.text}")
+                
+                return Response(
+                    {"message": f"Password reset instructions successfully sent to {email} via Resend HTTP API."},
+                    status=status.HTTP_200_OK
+                )
+            except Exception as e:
+                logger.error(f"Resend HTTP dispatch failure: {e}")
+                return Response(
+                    {"error": f"Resend HTTP dispatch failed: {str(e)}"},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+
+        # 2. Standard SMTP connection fallback
         if not getattr(settings, 'EMAIL_HOST_USER', None) or not getattr(settings, 'EMAIL_HOST_PASSWORD', None):
             return Response(
-                {"error": "SMTP mail credentials are not configured. Please add EMAIL_HOST_USER and EMAIL_HOST_PASSWORD in Render settings to enable live resets."},
+                {"error": "SMTP mail credentials are not configured. To send emails on Render Free tier, please add a RESEND_API_KEY environment variable in Render settings to use HTTP API instead of blocked SMTP ports."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
