@@ -68,18 +68,22 @@ apiClient.interceptors.response.use(
 
     if (error.response) {
       const responseData = error.response.data as {
-        error?: {
-          code?: string;
-          message?: string;
-          details?: Record<string, string[]>;
-        };
+        error?: unknown;
       };
       if (responseData && responseData.error) {
-        parsedError = {
-          code: responseData.error.code || 'API_ERROR',
-          message: responseData.error.message || 'Server error occurred',
-          details: responseData.error.details,
-        };
+        if (typeof responseData.error === 'object' && responseData.error !== null) {
+          const errObj = responseData.error as Record<string, unknown>;
+          parsedError = {
+            code: typeof errObj.code === 'string' ? errObj.code : 'API_ERROR',
+            message: typeof errObj.message === 'string' ? errObj.message : 'Server error occurred',
+            details: errObj.details as Record<string, string[]> | undefined,
+          };
+        } else {
+          parsedError = {
+            code: 'API_ERROR',
+            message: String(responseData.error),
+          };
+        }
       } else {
         parsedError = {
           code: `HTTP_${error.response.status}_ERROR`,

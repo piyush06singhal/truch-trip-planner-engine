@@ -8,7 +8,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
-from django.core.mail import send_mail
+from django.core.mail import send_mail, get_connection
 from django.conf import settings
 import logging
 
@@ -149,7 +149,16 @@ class RequestPasswordResetView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
+        # Fail fast if SMTP credentials are missing in settings configuration
+        if not getattr(settings, 'EMAIL_HOST_USER', None) or not getattr(settings, 'EMAIL_HOST_PASSWORD', None):
+            return Response(
+                {"error": "SMTP mail credentials are not configured. Please add EMAIL_HOST_USER and EMAIL_HOST_PASSWORD in Render settings to enable live resets."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
         try:
+            # Set a 5-second timeout constraint to prevent blocking Gunicorn workers
+            connection = get_connection(timeout=5)
             for user in users:
                 token = default_token_generator.make_token(user)
                 uid = urlsafe_base64_encode(force_bytes(user.pk))
@@ -173,7 +182,8 @@ class RequestPasswordResetView(APIView):
                     message,
                     settings.DEFAULT_FROM_EMAIL,
                     [user.email],
-                    fail_silently=False
+                    fail_silently=False,
+                    connection=connection
                 )
             
             return Response(
