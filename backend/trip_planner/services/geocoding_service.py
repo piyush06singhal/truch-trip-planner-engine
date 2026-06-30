@@ -96,6 +96,31 @@ class GeocodingService:
             "limit": 1
         }
         
+        import os
+        locationiq_key = os.environ.get("LOCATIONIQ_API_KEY")
+        if locationiq_key:
+            try:
+                response = requests.get(
+                    "https://us1.locationiq.com/v1/search.php",
+                    params={
+                        "key": locationiq_key,
+                        "q": query,
+                        "format": "json",
+                        "limit": 1
+                    },
+                    timeout=5.0
+                )
+                response.raise_for_status()
+                data = response.json()
+                if data:
+                    best = data[0]
+                    result = (float(best["lat"]), float(best["lon"]), best["display_name"])
+                    self.cache.set(f"geocode:{normalized_query}", result)
+                    logger.info(f"Resolved '{query}' using LocationIQ key-authenticated Geocoding API.")
+                    return result
+            except Exception as LocationIQError:
+                logger.error(f"LocationIQ geocoding lookup failed: {LocationIQError}. Falling back to public endpoints...")
+
         try:
             try:
                 response = self._get_request_with_retry(self.search_url, params)
