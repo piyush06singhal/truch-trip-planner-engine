@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { useTheme } from 'next-themes';
 import { 
@@ -7,8 +7,15 @@ import {
   Bell, 
   Settings, 
   Menu, 
-  User
+  User,
+  Check,
+  Trash2,
+  AlertTriangle,
+  Info as InfoIcon,
+  CheckCircle2,
+  X
 } from 'lucide-react';
+import { useUI } from '../../context/UIContext';
 
 interface NavbarProps {
   onMenuToggle: () => void;
@@ -17,12 +24,45 @@ interface NavbarProps {
 export const Navbar: React.FC<NavbarProps> = ({ onMenuToggle }) => {
   const { theme, setTheme } = useTheme();
   const location = useLocation();
+  const { notifications, markAllAsRead, clearNotifications } = useUI();
+  const [notifOpen, setNotifOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   
+  // Close dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setNotifOpen(false);
+      }
+    };
+    if (notifOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [notifOpen]);
+
   // Create breadcrumb label from route path
   const getBreadcrumb = () => {
     const path = location.pathname.substring(1);
     if (!path) return 'Dashboard';
     return path.charAt(0).toUpperCase() + path.slice(1).replace('-', ' ');
+  };
+
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  const getNotifIcon = (type: string) => {
+    switch (type) {
+      case 'success':
+        return <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />;
+      case 'warning':
+        return <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" />;
+      case 'error':
+        return <AlertTriangle className="h-4 w-4 text-red-500 shrink-0" />;
+      default:
+        return <InfoIcon className="h-4 w-4 text-blue-500 shrink-0" />;
+    }
   };
 
   return (
@@ -50,14 +90,93 @@ export const Navbar: React.FC<NavbarProps> = ({ onMenuToggle }) => {
 
         {/* Right Side: Tools, Theme & User Settings */}
         <div className="flex items-center gap-2">
-          {/* Notifications Trigger */}
-          <button
-            className="h-9 w-9 inline-flex items-center justify-center rounded-md border border-border hover:bg-secondary text-muted-foreground relative transition-colors focus:outline-none"
-            aria-label="View notifications list"
-          >
-            <Bell className="h-[1.1rem] w-[1.1rem]" />
-            <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-primary animate-pulse" />
-          </button>
+          {/* Notifications Trigger & Dropdown Wrapper */}
+          <div className="relative" ref={dropdownRef}>
+            <button
+              onClick={() => setNotifOpen(!notifOpen)}
+              className="h-9 w-9 inline-flex items-center justify-center rounded-md border border-border hover:bg-secondary text-muted-foreground relative transition-colors focus:outline-none cursor-pointer"
+              aria-label="View notifications list"
+            >
+              <Bell className="h-[1.1rem] w-[1.1rem]" />
+              {unreadCount > 0 && (
+                <>
+                  <span className="absolute top-1 right-1 h-4 w-4 rounded-full bg-primary text-[9px] font-bold text-white flex items-center justify-center animate-pulse">
+                    {unreadCount}
+                  </span>
+                </>
+              )}
+            </button>
+
+            {/* Dropdown Menu Panel */}
+            {notifOpen && (
+              <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-card border border-border shadow-2xl rounded-xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                {/* Header */}
+                <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/40">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-sm text-foreground">Compliance Alerts</span>
+                    {unreadCount > 0 && (
+                      <span className="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded-full">
+                        {unreadCount} New
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {notifications.length > 0 && (
+                      <>
+                        <button
+                          onClick={markAllAsRead}
+                          className="p-1 text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1 rounded hover:bg-secondary cursor-pointer"
+                          title="Mark all as read"
+                        >
+                          <Check className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          onClick={clearNotifications}
+                          className="p-1 text-xs text-muted-foreground hover:text-destructive inline-flex items-center gap-1 rounded hover:bg-secondary cursor-pointer"
+                          title="Clear all"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </>
+                    )}
+                    <button 
+                      onClick={() => setNotifOpen(false)}
+                      className="p-1 text-muted-foreground hover:text-foreground rounded hover:bg-secondary cursor-pointer"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Notifications List */}
+                <div className="max-h-[350px] overflow-y-auto divide-y divide-border">
+                  {notifications.length > 0 ? (
+                    notifications.map((notif) => (
+                      <div 
+                        key={notif.id} 
+                        className={`p-4 flex gap-3 transition-colors ${notif.read ? 'bg-card' : 'bg-primary/5'}`}
+                      >
+                        {getNotifIcon(notif.type)}
+                        <div className="space-y-1 flex-1 min-w-0">
+                          <div className="flex justify-between items-start gap-2">
+                            <h4 className="text-xs font-semibold text-foreground truncate">{notif.title}</h4>
+                            <span className="text-[10px] text-muted-foreground whitespace-nowrap">{notif.timestamp}</span>
+                          </div>
+                          <p className="text-[11px] text-muted-foreground leading-normal break-words">{notif.message}</p>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="py-12 flex flex-col items-center justify-center text-center p-4">
+                      <CheckCircle2 className="h-10 w-10 text-muted-foreground/30 mb-2" />
+                      <p className="text-xs font-medium text-foreground">All systems clear</p>
+                      <p className="text-[10px] text-muted-foreground max-w-[200px] mt-1">No pending FMCSA compliance warnings or timeline alerts.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Settings Shortcut Link */}
           <Link
@@ -71,7 +190,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onMenuToggle }) => {
           {/* Light/Dark Toggle */}
           <button
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            className="h-9 w-9 inline-flex items-center justify-center rounded-md border border-border bg-background text-sm font-medium transition-all hover:bg-secondary hover:text-secondary-foreground focus:outline-none"
+            className="h-9 w-9 inline-flex items-center justify-center rounded-md border border-border bg-background text-sm font-medium transition-all hover:bg-secondary hover:text-secondary-foreground focus-none cursor-pointer"
             aria-label="Toggle theme mode"
           >
             <Sun className="h-[1.1rem] w-[1.1rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />

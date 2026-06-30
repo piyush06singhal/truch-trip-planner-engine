@@ -53,7 +53,7 @@ const mockLogSheets = [
 ];
 
 export const ELDLogs: React.FC = () => {
-  const { plannedTrip, activeEldDay, setActiveEldDay } = useUI();
+  const { plannedTrip, activeEldDay, setActiveEldDay, carrierProfile } = useUI();
   const [hoveredEventIdx, setHoveredEventIdx] = useState<number | null>(null);
 
   // 1. Resolve sheets list
@@ -312,7 +312,7 @@ export const ELDLogs: React.FC = () => {
                   <span className="text-muted-foreground flex items-center gap-1">
                     <ShieldCheck className="h-3.5 w-3.5 text-zinc-500" /> Carrier
                   </span>
-                  <span className="font-bold text-zinc-200">Spotter Carrier Co.</span>
+                  <span className="font-bold text-zinc-200">{carrierProfile.name}</span>
                 </div>
                 <div className="flex justify-between border-b border-border/30 pb-2">
                   <span className="text-muted-foreground flex items-center gap-1">

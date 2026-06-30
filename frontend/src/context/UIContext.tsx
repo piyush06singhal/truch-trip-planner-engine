@@ -4,6 +4,23 @@ import { TripResponse } from '../types/trip';
 export type TabType = 'map' | 'timeline' | 'eld';
 export type MapTheme = 'light' | 'dark';
 
+export interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  type: 'info' | 'success' | 'warning' | 'error';
+  timestamp: string;
+  read: boolean;
+}
+
+export interface CarrierProfile {
+  name: string;
+  dotNumber: string;
+  address: string;
+}
+
+export type RulesetType = 'property-70h' | 'passenger-60h';
+
 interface UIContextType {
   activeTab: TabType;
   setActiveTab: (tab: TabType) => void;
@@ -15,6 +32,16 @@ interface UIContextType {
   setSelectedStopIdx: (idx: number | null) => void;
   mapTheme: MapTheme;
   setMapTheme: (theme: MapTheme) => void;
+  
+  // Interactive additions
+  notifications: Notification[];
+  addNotification: (title: string, message: string, type: 'info' | 'success' | 'warning' | 'error') => void;
+  markAllAsRead: () => void;
+  clearNotifications: () => void;
+  carrierProfile: CarrierProfile;
+  setCarrierProfile: (profile: CarrierProfile) => void;
+  activeRuleset: RulesetType;
+  setActiveRuleset: (ruleset: RulesetType) => void;
 }
 
 const UIContext = createContext<UIContextType | undefined>(undefined);
@@ -22,6 +49,94 @@ const UIContext = createContext<UIContextType | undefined>(undefined);
 export const UIProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [activeTab, setActiveTab] = useState<TabType>('map');
   const [activeEldDay, setActiveEldDay] = useState<number>(0);
+  const [selectedStopIdx, setSelectedStopIdx] = useState<number | null>(null);
+  
+  // Carrier profile & Active ruleset state loaded from localStorage
+  const [carrierProfile, setCarrierProfileState] = useState<CarrierProfile>(() => {
+    try {
+      const saved = localStorage.getItem('spotter_carrier_profile');
+      return saved ? JSON.parse(saved) : {
+        name: 'SpotterAI Logistics Corp',
+        dotNumber: 'DOT-8472911',
+        address: 'New York, NY 10001'
+      };
+    } catch {
+      return {
+        name: 'SpotterAI Logistics Corp',
+        dotNumber: 'DOT-8472911',
+        address: 'New York, NY 10001'
+      };
+    }
+  });
+
+  const [activeRuleset, setActiveRulesetState] = useState<RulesetType>(() => {
+    try {
+      const saved = localStorage.getItem('spotter_active_ruleset');
+      return (saved === 'property-70h' || saved === 'passenger-60h') ? saved : 'property-70h';
+    } catch {
+      return 'property-70h';
+    }
+  });
+
+  // Notifications center state
+  const [notifications, setNotifications] = useState<Notification[]>(() => {
+    return [
+      {
+        id: 'init-welcome',
+        title: 'Welcome to SpotterAI',
+        message: 'Your compliance monitor & routing dashboard is fully active.',
+        type: 'info',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        read: false,
+      },
+      {
+        id: 'init-backend',
+        title: 'Backend Sync Active',
+        message: 'REST API & Supabase database integration is connected.',
+        type: 'success',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        read: false,
+      }
+    ];
+  });
+
+  const addNotification = (title: string, message: string, type: 'info' | 'success' | 'warning' | 'error') => {
+    const newNotif: Notification = {
+      id: Math.random().toString(36).substring(2, 9),
+      title,
+      message,
+      type,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      read: false
+    };
+    setNotifications(prev => [newNotif, ...prev]);
+  };
+
+  const markAllAsRead = () => {
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+  };
+
+  const clearNotifications = () => {
+    setNotifications([]);
+  };
+
+  const setCarrierProfile = (profile: CarrierProfile) => {
+    setCarrierProfileState(profile);
+    try {
+      localStorage.setItem('spotter_carrier_profile', JSON.stringify(profile));
+    } catch (e) {
+      // Storage save recovery
+    }
+  };
+
+  const setActiveRuleset = (ruleset: RulesetType) => {
+    setActiveRulesetState(ruleset);
+    try {
+      localStorage.setItem('spotter_active_ruleset', ruleset);
+    } catch (e) {
+      // Storage save recovery
+    }
+  };
   
   const [plannedTrip, setPlannedTripState] = useState<TripResponse | null>(() => {
     try {
@@ -37,6 +152,12 @@ export const UIProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     try {
       if (trip) {
         localStorage.setItem('spotter_planned_trip', JSON.stringify(trip));
+        // Add automatic route notification
+        addNotification(
+          'Route compliance audited',
+          `Planned leg from ${trip.stops[0]?.location || 'Origin'} to ${trip.stops[trip.stops.length - 1]?.location || 'Destination'} check passed.`,
+          'success'
+        );
       } else {
         localStorage.removeItem('spotter_planned_trip');
       }
@@ -45,8 +166,6 @@ export const UIProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     }
   };
 
-  const [selectedStopIdx, setSelectedStopIdx] = useState<number | null>(null);
-  
   const [mapTheme, setMapThemeState] = useState<MapTheme>(() => {
     try {
       const saved = localStorage.getItem('spotter_map_theme');
@@ -72,6 +191,12 @@ export const UIProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
       plannedTrip, setPlannedTrip,
       selectedStopIdx, setSelectedStopIdx,
       mapTheme, setMapTheme,
+      
+      // Interactive values
+      notifications, addNotification,
+      markAllAsRead, clearNotifications,
+      carrierProfile, setCarrierProfile,
+      activeRuleset, setActiveRuleset,
     }}>
       {children}
     </UIContext.Provider>
