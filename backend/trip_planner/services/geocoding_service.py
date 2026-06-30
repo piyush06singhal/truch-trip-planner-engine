@@ -65,16 +65,43 @@ class GeocodingService:
         }
         
         try:
-            response = self._get_request_with_retry(self.search_url, params)
-            data = response.json()
-            
-            if not data:
-                raise RoutingError(f"No coordinates found for address search: '{query}'")
+            try:
+                response = self._get_request_with_retry(self.search_url, params)
+                data = response.json()
                 
-            best_match = data[0]
-            lat = float(best_match["lat"])
-            lon = float(best_match["lon"])
-            display_name = best_match["display_name"]
+                if not data:
+                    raise RoutingError(f"No coordinates found for address search: '{query}'")
+                    
+                best_match = data[0]
+                lat = float(best_match["lat"])
+                lon = float(best_match["lon"])
+                display_name = best_match["display_name"]
+            except Exception as NominatimError:
+                logger.warning(f"Nominatim lookup failed: {NominatimError}. Triggering Photon API HTTP fallback...")
+                
+                # Photon OpenStreetMap Geocoding Web API fallback (bypasses cloud IP blocking/limits)
+                photon_url = "https://photon.komoot.io/api/"
+                photon_params = {"q": query, "limit": 1}
+                photon_response = requests.get(photon_url, headers=self.headers, params=photon_params, timeout=5.0)
+                photon_response.raise_for_status()
+                photon_data = photon_response.json()
+                
+                features = photon_data.get("features", [])
+                if not features:
+                    raise RoutingError(f"Photon fallback found no coordinates for: '{query}'")
+                
+                best_feat = features[0]
+                coords = best_feat["geometry"]["coordinates"]
+                lon = float(coords[0])
+                lat = float(coords[1])
+                
+                props = best_feat.get("properties", {})
+                display_parts = []
+                for key in ["name", "city", "state", "country"]:
+                    val = props.get(key)
+                    if val:
+                        display_parts.append(str(val))
+                display_name = ", ".join(display_parts) if display_parts else query
             
             result = (lat, lon, display_name)
             
