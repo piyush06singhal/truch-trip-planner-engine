@@ -15,12 +15,10 @@ import {
   CheckCircle2,
   X,
   LogOut,
-  LogIn,
   Building,
   Award
 } from 'lucide-react';
 import { useUI } from '../../context/UIContext';
-import { AuthModal } from './AuthModal';
 
 interface NavbarProps {
   onMenuToggle: () => void;
@@ -43,7 +41,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onMenuToggle }) => {
   // Dropdown & Modal states
   const [notifOpen, setNotifOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
-  const [authModalOpen, setAuthModalOpen] = useState(false);
 
   const notifRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
@@ -280,18 +277,9 @@ export const Navbar: React.FC<NavbarProps> = ({ onMenuToggle }) => {
                     <div className="space-y-1 select-none">
                       <p className="text-xs font-bold text-foreground">Driver Profile Offline</p>
                       <p className="text-[10px] text-muted-foreground max-w-[200px] mx-auto leading-normal">
-                        Sign in to sync your compliance trip logs and digital HOS sheets under your driver account.
+                        Please sign in to access HOS compliance records.
                       </p>
                     </div>
-                    <button
-                      onClick={() => {
-                        setProfileOpen(false);
-                        setAuthModalOpen(true);
-                      }}
-                      className="w-full inline-flex items-center justify-center gap-1.5 bg-primary text-white text-xs font-semibold px-3 py-2 rounded-lg cursor-pointer hover:bg-primary/90 transition-colors"
-                    >
-                      <LogIn className="h-3.5 w-3.5" /> Sign In / Register
-                    </button>
                   </div>
                 )}
               </div>
@@ -299,9 +287,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onMenuToggle }) => {
           </div>
         </div>
       </div>
-
-      {/* Auth Modal Overlay Popup */}
-      <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} />
     </header>
   );
 };
