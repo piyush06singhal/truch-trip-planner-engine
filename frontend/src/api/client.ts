@@ -14,7 +14,7 @@ export interface ApiResponse<T> {
 
 const apiClient: AxiosInstance = axios.create({
   baseURL: (import.meta.env.VITE_API_URL as string) || 'http://localhost:8000',
-  timeout: 15000,
+  timeout: 120000, // 120s to handle Render free tier cold start (50s+ spin-up)
   headers: {
     'Content-Type': 'application/json',
   },
