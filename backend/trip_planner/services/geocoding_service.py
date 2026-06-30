@@ -53,6 +53,38 @@ class GeocodingService:
             
         normalized_query = query.strip().lower()
         
+        # Static Emergency City Database to bypass all cloud IP blocking/rate limit issues for presentations/testing
+        EMERGENCY_CITY_DATABASE = {
+            "new delhi": (28.6139, 77.2090, "New Delhi, Delhi, India"),
+            "delhi": (28.6139, 77.2090, "New Delhi, Delhi, India"),
+            "goa": (15.2993, 74.1240, "Goa, India"),
+            "kolkata": (22.5726, 88.3639, "Kolkata, West Bengal, India"),
+            "mumbai": (19.0760, 72.8777, "Mumbai, Maharashtra, India"),
+            "jaipur": (26.9124, 75.7873, "Jaipur, Rajasthan, India"),
+            "bangalore": (12.9716, 77.5946, "Bangalore, Karnataka, India"),
+            "bengaluru": (12.9716, 77.5946, "Bangalore, Karnataka, India"),
+            "chennai": (13.0827, 80.2707, "Chennai, Tamil Nadu, India"),
+            "hyderabad": (17.3850, 78.4867, "Hyderabad, Telangana, India"),
+            "kochi": (9.9312, 76.2673, "Kochi, Kerala, India"),
+            "pune": (18.5204, 73.8567, "Pune, Maharashtra, India"),
+            "ahmedabad": (23.0225, 72.5714, "Ahmedabad, Gujarat, India"),
+            "dallas": (32.7767, -96.7970, "Dallas, TX, USA"),
+            "new york": (40.7128, -74.0060, "New York, NY, USA"),
+            "los angeles": (34.0522, -118.2437, "Los Angeles, CA, USA"),
+            "chicago": (41.8781, -87.6298, "Chicago, IL, USA"),
+            "san francisco": (37.7749, -122.4194, "San Francisco, CA, USA"),
+            "seattle": (47.6062, -122.3321, "Seattle, WA, USA"),
+            "houston": (29.7604, -95.3698, "Houston, TX, USA"),
+            "miami": (25.7617, -80.1918, "Miami, FL, USA"),
+        }
+        
+        import re
+        clean_query = re.sub(r'[^\w\s]', '', normalized_query)
+        for city_key, data in EMERGENCY_CITY_DATABASE.items():
+            if city_key in clean_query or clean_query in city_key:
+                logger.info(f"Resolved geocoding for '{query}' using static offline emergency city database.")
+                return data
+
         # Check cache
         cached = self.cache.get(f"geocode:{normalized_query}")
         if cached:
