@@ -30,3 +30,13 @@ export const getUserProfile = async (): Promise<User> => {
   const response = await apiClient.get('/api/auth/profile/');
   return response.data;
 };
+
+export const requestPasswordReset = async (email: string): Promise<{ message: string }> => {
+  const response = await apiClient.post('/api/auth/password-reset/', { email });
+  return response.data;
+};
+
+export const confirmPasswordReset = async (uid: string, token: string, new_password: string): Promise<{ message: string }> => {
+  const response = await apiClient.post('/api/auth/password-reset/confirm/', { uid, token, new_password });
+  return response.data;
+};

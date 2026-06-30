@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Truck, Lock, Mail, User, ShieldAlert, ArrowLeft } from 'lucide-react';
-import { loginUser, registerUser } from '../api/auth';
+import { loginUser, registerUser, requestPasswordReset } from '../api/auth';
 import { useUI } from '../context/UIContext';
 import Button from '../components/ui/Button';
 
@@ -38,11 +38,18 @@ export const AuthPage: React.FC = () => {
         return;
       }
       setLoading(true);
-      setTimeout(() => {
+      try {
+        const res = await requestPasswordReset(resetEmail.trim());
         setResetSent(true);
+        addNotification('Password Reset Sent', res.message, 'success');
+      } catch (err) {
+        const msg = err && typeof err === 'object' && 'message' in err
+          ? (err as { message: string }).message
+          : 'Failed to request password reset.';
+        setErrorMsg(msg);
+      } finally {
         setLoading(false);
-        addNotification('Reset Request Simulated', `Password reset instructions sent to ${resetEmail}.`, 'info');
-      }, 1000);
+      }
       return;
     }
 

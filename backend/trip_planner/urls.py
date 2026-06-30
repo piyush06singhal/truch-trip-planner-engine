@@ -1,6 +1,6 @@
 from django.urls import path
 from .views import HealthCheckView, TripViewSet, StopViewSet, ELDLogViewSet, TripDetailViewSet
-from .views.auth import RegisterView, LoginView, LogoutView, UserProfileView
+from .views.auth import RegisterView, LoginView, LogoutView, UserProfileView, RequestPasswordResetView, ConfirmPasswordResetView
 
 urlpatterns = [
     path('health/', HealthCheckView.as_view(), name='health-check'),
@@ -15,4 +15,6 @@ urlpatterns = [
     path('auth/login/', LoginView.as_view(), name='auth-login'),
     path('auth/logout/', LogoutView.as_view(), name='auth-logout'),
     path('auth/profile/', UserProfileView.as_view(), name='auth-profile'),
+    path('auth/password-reset/', RequestPasswordResetView.as_view(), name='auth-password-reset-request'),
+    path('auth/password-reset/confirm/', ConfirmPasswordResetView.as_view(), name='auth-password-reset-confirm'),
 ]
