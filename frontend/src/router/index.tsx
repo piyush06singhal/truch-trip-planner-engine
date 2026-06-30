@@ -11,6 +11,7 @@ const ELDLogs = lazy(() => import('../pages/ELDLogs'));
 const History = lazy(() => import('../pages/History'));
 const Settings = lazy(() => import('../pages/Settings'));
 const About = lazy(() => import('../pages/About'));
+const ResetPassword = lazy(() => import('../pages/ResetPassword'));
 const NotFound = lazy(() => import('../pages/NotFound'));
 
 const PageLoader: React.FC = () => (
@@ -32,6 +33,7 @@ export const AppRouter: React.FC = () => {
         <Route path="/history" element={<History />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/about" element={<About />} />
+        <Route path="/reset-password/:uid/:token" element={<ResetPassword />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>

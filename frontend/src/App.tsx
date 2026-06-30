@@ -9,6 +9,8 @@ import { Loader2 } from 'lucide-react';
 export const App: React.FC = () => {
   const { currentUser, authLoading } = useUI();
 
+  const isResetPath = window.location.pathname.startsWith('/reset-password/');
+
   // If fetching current session token on mount, display full-screen spinner
   if (authLoading) {
     return (
@@ -21,11 +23,11 @@ export const App: React.FC = () => {
     );
   }
 
-  // Force login page if user profile session token is missing
+  // Force login page if user profile session token is missing and not on a reset path
   if (!currentUser) {
     return (
       <BrowserRouter>
-        <AuthPage />
+        {isResetPath ? <AppRouter /> : <AuthPage />}
       </BrowserRouter>
     );
   }
