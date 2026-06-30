@@ -20,7 +20,7 @@ class GeocodingService:
         }
         self.cache = CacheService()
 
-    def _get_request_with_retry(self, url: str, params: Dict[str, Any], max_retries: int = 3) -> requests.Response:
+    def _get_request_with_retry(self, url: str, params: Dict[str, Any], max_retries: int = 1) -> requests.Response:
         """
         Execute an HTTP GET request with exponential backoff for transient failures.
         """
