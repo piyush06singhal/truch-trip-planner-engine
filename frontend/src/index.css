@@ -1,0 +1,240 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+
+    --card: 0 0% 98%;
+    --card-foreground: 240 10% 3.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+
+    --muted: 240 3.8% 46.1%;
+    --muted-foreground: 240 4% 56.1%;
+
+    --accent: 221.2 83.2% 53.3%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 221.2 83.2% 53.3%;
+
+    --radius: 0.5rem;
+
+    --status-off: 240 5.9% 90%;
+    --status-sleep: 142.1 76.2% 36.3%;
+    --status-drive: 221.2 83.2% 53.3%;
+    --status-onduty: 38 92% 50%;
+  }
+
+  .dark {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+
+    --card: 240 10% 10%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 240 5% 64.9%;
+    --muted-foreground: 240 5% 64.9%;
+
+    --accent: 217.2 91.2% 59.8%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 217.2 91.2% 59.8%;
+
+    --status-off: 240 3.7% 20%;
+    --status-sleep: 142.1 70.6% 45.3%;
+    --status-drive: 217.2 91.2% 59.8%;
+    --status-onduty: 38 92% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Skeleton Loading Shimmer Utility */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--border)) 25%,
+    hsl(var(--card)) 50%,
+    hsl(var(--border)) 75%
+  );
+  background-size: 200% 100%;
+  animation: loading-shimmer 1.5s infinite;
+}
+
+@keyframes loading-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* ─── Leaflet Map Overrides ─────────────────────────────────────────────── */
+
+/* Hide default attribution (we use our own) */
+.leaflet-control-attribution {
+  display: none !important;
+}
+
+/* Zoom controls — hide default (we use custom) */
+.leaflet-control-zoom {
+  display: none !important;
+}
+
+/* Popup dark theme */
+.leaflet-popup-content-wrapper {
+  background: rgba(14, 14, 20, 0.96) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6) !important;
+  padding: 0 !important;
+  backdrop-filter: blur(16px) !important;
+  color: #e4e4e7 !important;
+}
+
+.leaflet-popup-content {
+  margin: 14px 16px !important;
+  font-family: inherit !important;
+  font-size: 12px !important;
+  color: #e4e4e7 !important;
+  line-height: 1.5 !important;
+}
+
+.leaflet-popup-tip-container {
+  display: none !important;
+}
+
+.leaflet-popup-close-button {
+  color: rgba(255,255,255,0.4) !important;
+  font-size: 18px !important;
+  padding: 6px 8px !important;
+  transition: color 0.15s !important;
+}
+.leaflet-popup-close-button:hover {
+  color: rgba(255,255,255,0.9) !important;
+  background: transparent !important;
+}
+
+/* Tooltip dark theme */
+.leaflet-tooltip {
+  background: rgba(14, 14, 20, 0.94) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 8px !important;
+  color: #e4e4e7 !important;
+  font-family: inherit !important;
+  font-size: 11px !important;
+  padding: 5px 10px !important;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5) !important;
+  backdrop-filter: blur(12px) !important;
+  white-space: nowrap !important;
+}
+
+.leaflet-tooltip::before {
+  display: none !important;
+}
+
+/* Scale bar */
+.leaflet-control-scale-line {
+  background: rgba(14, 14, 20, 0.85) !important;
+  border-color: rgba(255,255,255,0.15) !important;
+  color: rgba(255,255,255,0.55) !important;
+  font-size: 9px !important;
+  padding: 2px 6px !important;
+  border-radius: 4px !important;
+}
+
+/* Map cursor */
+.leaflet-container {
+  cursor: grab !important;
+  font-family: inherit !important;
+}
+.leaflet-container:active {
+  cursor: grabbing !important;
+}
+
+/* Marker animation */
+.leaflet-marker-icon {
+  transition: transform 0.2s ease !important;
+}
+
+/* ─── Print Mode Overrides ─────────────────────────────────────────────── */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  
+  /* Hide sidebar nav, top bar, controls, and print triggers */
+  aside, 
+  header, 
+  nav, 
+  button, 
+  input, 
+  select,
+  .map-controls,
+  .map-legend,
+  .no-print {
+    display: none !important;
+  }
+
+  /* Force main layouts to span full printable bounds */
+  main, 
+  .container, 
+  .grid, 
+  .card, 
+  .table {
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    background: transparent !important;
+    color: black !important;
+  }
+
+  /* Avoid splitting cards or table rows across page folds */
+  tr, 
+  .card, 
+  .stat-card {
+    page-break-inside: avoid !important;
+  }
+}
+
