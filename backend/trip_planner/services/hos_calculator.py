@@ -116,7 +116,15 @@ class HOSCalculator:
         self.fuel_planner = FuelPlanner()
         self.break_planner = BreakPlanner()
         
-        self.current_time = start_time or datetime(2026, 6, 30, 8, 0, 0)
+        if start_time is None:
+            try:
+                from django.utils import timezone
+                start_time = timezone.localtime(timezone.now())
+            except Exception:
+                from datetime import datetime
+                start_time = datetime.now()
+
+        self.current_time = start_time
         self.driving_in_shift = 0.0
         self.timeline_events: List[Dict[str, Any]] = []
 
@@ -285,6 +293,8 @@ class DailyLogGenerator:
             temp_start = evt_start
             while temp_start < evt_end:
                 day_boundary = datetime.combine(temp_start.date() + timedelta(days=1), datetime.min.time())
+                if temp_start.tzinfo is not None:
+                    day_boundary = day_boundary.replace(tzinfo=temp_start.tzinfo)
                 seg_end = min(evt_end, day_boundary)
                 seg_duration = (seg_end - temp_start).total_seconds() / 3600.0
                 
