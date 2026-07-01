@@ -89,7 +89,8 @@ class TripViewSet(APIView):
             )
             
             # Map key milestones as Stops
-            Stop.objects.create(
+            stops_to_create = []
+            stops_to_create.append(Stop(
                 trip=trip,
                 stop_type="ORIGIN",
                 location_name=summary["origin"],
@@ -98,7 +99,7 @@ class TripViewSet(APIView):
                 arrival_time=parse_iso(plan["timeline"][0]["start_time"]),
                 duration_hours=0.0,
                 distance_from_start_miles=0.0
-            )
+            ))
             
             cum_miles = 0.0
             speed = summary["total_distance_miles"] / summary["total_duration_hours"] if summary["total_duration_hours"] > 0 else 50.0
@@ -127,7 +128,7 @@ class TripViewSet(APIView):
                         lat = (summary["origin_lat"] + summary["pickup_lat"]) / 2.0
                         lng = (summary["origin_lng"] + summary["pickup_lng"]) / 2.0
                     
-                    Stop.objects.create(
+                    stops_to_create.append(Stop(
                         trip=trip,
                         stop_type=stop_mapping[t_type],
                         location_name=item["location"],
@@ -136,9 +137,13 @@ class TripViewSet(APIView):
                         arrival_time=parse_iso(item["start_time"]),
                         duration_hours=item["duration"],
                         distance_from_start_miles=round(cum_miles, 2)
-                    )
+                    ))
+            
+            if stops_to_create:
+                Stop.objects.bulk_create(stops_to_create)
             
             # Record Daily ELD log sheets
+            events_to_create = []
             for sheet in plan["daily_logs"]:
                 log_day = ELDLogDay.objects.create(
                     trip=trip,
@@ -163,14 +168,17 @@ class TripViewSet(APIView):
                             "DRIVING": "DRIVING",
                             "ON_DUTY_ND": "ON_DUTY_ND"
                         }
-                        ELDEvent.objects.create(
+                        events_to_create.append(ELDEvent(
                             eld_log_day=log_day,
                             status=status_map.get(event["status"], "OFF_DUTY"),
                             start_time=evt_time,
                             end_time=evt_end,
                             location_name=event["location"],
                             remarks=event["remarks"]
-                        )
+                        ))
+            
+            if events_to_create:
+                ELDEvent.objects.bulk_create(events_to_create)
                         
         # Format fully nested response payload
         out_serializer = TripOutputSerializer(trip)
