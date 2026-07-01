@@ -458,7 +458,9 @@ class TripPlanningEngine:
         restart_stops = sum(1 for e in calc.timeline_events if e["type"] == "RESTART")
 
         total_distance = round(leg1_dist + leg2_dist, 2)
-        total_duration_hours = (calc.current_time - (start_time or datetime(2026, 6, 30, 8, 0, 0))).total_seconds() / 3600.0
+        
+        first_event_start = calc.timeline_events[0]["start_time"]
+        total_duration_hours = (calc.current_time - first_event_start).total_seconds() / 3600.0
         total_driving_hours = sum(e["duration"] for e in calc.timeline_events if e["status"] == "DRIVING")
 
         # Enclose the whole route bounding box
