@@ -135,6 +135,8 @@ class TripOutputSerializer(serializers.ModelSerializer):
             "start_cycle_used_hours", 
             "total_distance_miles", 
             "total_duration_hours", 
+            "created_at",
+            "updated_at",
             "stops", 
             "eld_sheets"
         ]
